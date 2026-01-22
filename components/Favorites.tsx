@@ -108,9 +108,18 @@ const FavouriteItem: React.FC<{ plant: FavouritePlant, onRemove: (scientificName
         <>
             <div className="bg-secondary p-4 rounded-lg transition-all duration-300">
                 <div className="flex justify-between items-center cursor-pointer" onClick={handleToggleOpen}>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-800">{plant.plantName}</h3>
-                        <p className="text-sm italic text-gray-600">{plant.scientificName}</p>
+                    <div className="flex items-center gap-4">
+                        {plant.imagePreview && (
+                            <img 
+                                src={plant.imagePreview} 
+                                alt={plant.plantName} 
+                                className="w-14 h-14 object-cover rounded-full border-2 border-white shadow-sm"
+                            />
+                        )}
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800">{plant.plantName}</h3>
+                            <p className="text-sm italic text-gray-600">{plant.scientificName}</p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button 
@@ -127,8 +136,16 @@ const FavouriteItem: React.FC<{ plant: FavouritePlant, onRemove: (scientificName
                     </div>
                 </div>
                 <div className={`overflow-hidden transition-[max-height] duration-700 ease-in-out ${isOpen ? 'max-h-[2000px] mt-4' : 'max-h-0'}`}>
-                    <div className="border-t border-gray-200 pt-4 mt-2 space-y-4">
-                        <p className="text-gray-700">{plant.description}</p>
+                    <div className="border-t border-gray-200 pt-4 mt-2 space-y-4 text-center">
+                        {plant.imagePreview && (
+                            <img 
+                                src={plant.imagePreview} 
+                                alt={plant.plantName} 
+                                className="w-full max-w-md h-48 sm:h-64 object-cover rounded-lg shadow-md mx-auto mb-4"
+                            />
+                        )}
+                        <div className="text-left">
+                            <p className="text-gray-700">{plant.description}</p>
                         
                         {plant.summary && (
                         <div>
@@ -167,6 +184,7 @@ const FavouriteItem: React.FC<{ plant: FavouritePlant, onRemove: (scientificName
                                 <ContentRenderer content={plant.pestsAndDiseases} />
                             </div>
                         )}
+                        </div>
                     </div>
                 </div>
             </div>

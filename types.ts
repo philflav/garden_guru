@@ -19,4 +19,5 @@ export interface PlantInfo {
 export interface FavouritePlant extends PlantInfo {
   careInstructions: string;
   pestsAndDiseases?: string;
+  imagePreview?: string;
 }

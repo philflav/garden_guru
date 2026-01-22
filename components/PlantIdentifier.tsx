@@ -211,13 +211,25 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
     }
   };
 
-  const handleFavouriteToggle = () => {
+  const handleFavouriteToggle = async () => {
       if (!plantInfo || !careInstructions) return;
       
+      let base64Image: string | undefined;
+
+      if (image?.file) {
+          try {
+             const { base64, mimeType } = await fileToBase64(image.file);
+             base64Image = `data:${mimeType};base64,${base64}`;
+          } catch (e) {
+              console.error("Failed to convert image to base64 for saving", e);
+          }
+      }
+
       const plantData: FavouritePlant = {
           ...plantInfo,
           careInstructions,
           pestsAndDiseases: pestsAndDiseases ?? undefined,
+          imagePreview: base64Image
       };
 
       if (isFavourited) {
@@ -361,12 +373,15 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
                     {careInstructions && plantInfo.plantName !== 'Unknown Plant' && (
                         <button 
                             onClick={handleFavouriteToggle}
-                            className={`p-2 rounded-full transition-colors duration-300 ${
-                                isFavourited ? 'text-red-500 bg-red-100' : 'text-gray-500 hover:text-red-500 hover:bg-red-100'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
+                                isFavourited 
+                                    ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
                             }`}
                             aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
                         >
-                            <HeartIcon className={`w-6 h-6 ${isFavourited ? 'fill-current' : 'fill-none'}`} />
+                            <HeartIcon className={`w-5 h-5 ${isFavourited ? 'fill-current' : 'fill-none'}`} />
+                            <span>{isFavourited ? 'Saved' : 'Add to Favourites'}</span>
                         </button>
                     )}
                 </div>
