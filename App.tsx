@@ -71,7 +71,7 @@ const App: React.FC = () => {
             className={`${navButtonClasses} ${view === 'chat' ? activeNavButtonClasses : inactiveNavButtonClasses}`}
           >
             <MessageCircleIcon className="w-5 h-5" />
-            Chat
+            Ask an Expert
           </button>
           <button
             onClick={() => setView('favourites')}

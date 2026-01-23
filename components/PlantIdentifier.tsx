@@ -27,10 +27,8 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
     });
   };
 
-  // FIX: Replaced JSX.Element with React.ReactElement to resolve namespace issue.
   const elements: React.ReactElement[] = [];
   const lines = content.split('\n');
-  // FIX: Replaced JSX.Element with React.ReactElement to resolve namespace issue.
   let currentListItems: React.ReactElement[] = [];
 
   const flushList = () => {
@@ -102,6 +100,7 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
   
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isFavourited, setIsFavourited] = useState(false);
+  const [favouriteStatusMsg, setFavouriteStatusMsg] = useState<string | null>(null);
   
   const [isRhsModalOpen, setIsRhsModalOpen] = useState(false);
   const [rhsModalContent, setRhsModalContent] = useState('');
@@ -184,7 +183,7 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
         const instructions = await fetchCareInstructions(info.plantName, info.scientificName);
         setCareInstructions(instructions);
       } else {
-        setPlantInfo(info); // To show "Unknown Plant" message
+        setPlantInfo(info); 
         setChatContextPlant(null);
         setError("Could not identify the plant. Please try another photo.");
       }
@@ -212,30 +211,28 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
   };
 
   const handleFavouriteToggle = async () => {
-      if (!plantInfo || !careInstructions) return;
+      if (!plantInfo || !careInstructions || !image) return;
       
-      let base64Image: string | undefined;
-
-      if (image?.file) {
-          try {
-             const { base64, mimeType } = await fileToBase64(image.file);
-             base64Image = `data:${mimeType};base64,${base64}`;
-          } catch (e) {
-              console.error("Failed to convert image to base64 for saving", e);
-          }
-      }
-
-      const plantData: FavouritePlant = {
-          ...plantInfo,
-          careInstructions,
-          pestsAndDiseases: pestsAndDiseases ?? undefined,
-          imagePreview: base64Image
-      };
-
       if (isFavourited) {
-          removeFavourite(plantData.scientificName);
+          removeFavourite(plantInfo.scientificName);
+          setFavouriteStatusMsg("Removed from favourites");
+          setTimeout(() => setFavouriteStatusMsg(null), 3000);
       } else {
-          addFavourite(plantData);
+          try {
+            const { base64, mimeType } = await fileToBase64(image.file);
+            const plantData: FavouritePlant = {
+                ...plantInfo,
+                imageUrl: `data:${mimeType};base64,${base64}`,
+                careInstructions,
+                pestsAndDiseases: pestsAndDiseases ?? undefined,
+            };
+            addFavourite(plantData);
+            setFavouriteStatusMsg("Added to your garden!");
+            setTimeout(() => setFavouriteStatusMsg(null), 3000);
+          } catch (e) {
+            console.error("Failed to save image for favourite", e);
+            setError("Could not save the plant to favourites due to an image error.");
+          }
       }
   };
 
@@ -287,13 +284,6 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
     }
   };
 
-  const LoadingIndicator = () => (
-    <div className="flex flex-col items-center justify-center space-y-4 p-8 bg-base-100 rounded-xl">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-gray-600 animate-pulse">Analyzing your plant...</p>
-    </div>
-  );
-
   const SummaryItem: React.FC<{ icon: React.ReactNode, label: string, value: React.ReactNode }> = ({ icon, label, value }) => (
     <div className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
         <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-100 text-primary rounded-full">
@@ -308,14 +298,20 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
 
   return (
     <>
-      <div className="bg-base-100 p-6 sm:p-8 rounded-xl shadow-lg flex flex-col items-center gap-6">
+      <div className="bg-base-100 p-6 sm:p-8 rounded-xl shadow-lg flex flex-col items-center gap-6 relative overflow-hidden">
         <h2 className="text-2xl font-bold text-center text-gray-700">Identify a Plant</h2>
         
+        {favouriteStatusMsg && (
+          <div className="absolute top-4 bg-primary text-white px-4 py-2 rounded-full shadow-lg z-20 animate-bounce text-sm font-bold">
+            {favouriteStatusMsg}
+          </div>
+        )}
+
         <div className="w-full max-w-md">
           <label htmlFor="plant-upload" className="w-full cursor-pointer">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary hover:bg-green-50 transition-colors">
               {image ? (
-                <img src={image.preview} alt="Plant preview" className="mx-auto max-h-48 rounded-lg" />
+                <img src={image.preview} alt="Plant preview" className="mx-auto max-h-48 rounded-lg shadow-md" />
               ) : (
                 <div className="flex flex-col items-center text-gray-500">
                   <UploadCloudIcon className="w-12 h-12 mb-2" />
@@ -353,7 +349,12 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
           </button>
         )}
 
-        {loading && <LoadingIndicator />}
+        {loading && (
+          <div className="flex flex-col items-center justify-center space-y-4 p-8 bg-base-100 rounded-xl">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-gray-600 animate-pulse">Analyzing your plant...</p>
+          </div>
+        )}
 
         {error && !loading && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md w-full max-w-md">
@@ -373,24 +374,24 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
                     {careInstructions && plantInfo.plantName !== 'Unknown Plant' && (
                         <button 
                             onClick={handleFavouriteToggle}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-colors duration-300 ${
-                                isFavourited 
-                                    ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                                    : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
+                            className={`p-3 rounded-full transition-all duration-300 transform active:scale-150 ${
+                                isFavourited ? 'text-red-500 bg-red-100 shadow-inner' : 'text-gray-400 hover:text-red-400 hover:bg-red-50'
                             }`}
                             aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
                         >
-                            <HeartIcon className={`w-5 h-5 ${isFavourited ? 'fill-current' : 'fill-none'}`} />
-                            <span>{isFavourited ? 'Saved' : 'Add to Favourites'}</span>
+                            <HeartIcon className={`w-8 h-8 ${isFavourited ? 'fill-current' : 'fill-none'}`} />
                         </button>
                     )}
                 </div>
-                <p className="mt-4 text-gray-700">{plantInfo.description}</p>
+                <p className="mt-4 text-gray-700 leading-relaxed">{plantInfo.description}</p>
             </div>
             
             {plantInfo.summary && plantInfo.plantName !== 'Unknown Plant' && (
               <div className="bg-secondary p-4 sm:p-6 rounded-lg">
-                <h4 className="text-xl font-bold text-gray-800 mb-4">Plant Profile</h4>
+                <h4 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <TreePineIcon className="w-6 h-6 text-primary" />
+                  Plant Profile
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <SummaryItem icon={<TreePineIcon className="w-5 h-5"/>} label="Plant Type" value={plantInfo.summary.plantType} />
                     <SummaryItem icon={<RulerIcon className="w-5 h-5"/>} label="Size" value={plantInfo.summary.size} />
