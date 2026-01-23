@@ -1,6 +1,23 @@
 
 import React from 'react';
 
+export const GardenLogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {/* Pot */}
+    <path d="M7 16h10l-1 6H8l-1-6z" />
+    <path d="M6 12h12v4H6z" />
+    {/* Stem */}
+    <path d="M12 12V8" />
+    {/* Leaves */}
+    <path d="M12 10c-2 0-3 1-3 3" />
+    <path d="M12 10c2 0 3 1 3 3" />
+    {/* Flower */}
+    <path d="M12 2a3 3 0 0 0-3 3c0 2 3 3 3 3s3-1 3-3a3 3 0 0 0-3-3z" />
+    <path d="M12 8c-2 0-3-1-3-3" />
+    <path d="M12 8c2 0 3-1 3-3" />
+  </svg>
+);
+
 export const LeafIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 20A7 7 0 0 1 4 13V8a2 2 0 0 1 2-2h2" />
@@ -152,4 +169,13 @@ export const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
         <path d="M18 6 6 18"/>
         <path d="m6 6 12 12"/>
     </svg>
+);
+
+export const CalendarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
 );

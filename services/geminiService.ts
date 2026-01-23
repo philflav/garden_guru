@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 const API_KEY = process.env.API_KEY;
@@ -88,6 +89,22 @@ export const fetchRhsExplanation = async (rating: string) => {
         contents: prompt,
     });
     return response.text;
+};
+
+export const fetchSeasonalTips = async (month: string) => {
+  const prompt = `You are an expert UK gardener. Provide a concise seasonal gardening guide for ${month} in the UK.
+  Structure the response in Markdown with these specific sections (level 3 headings ###):
+  1. '🌱 Planting Now' (What to sow or plant out)
+  2. '✂️ Jobs to do' (Pruning, maintenance, lawn care)
+  3. '🧺 Harvest & Kitchen' (What's ready to eat, storage tips, or recipe ideas for gluts)
+  
+  Use bullet points (*) and bold text (**) for emphasis. Keep it practical and inspiring for a home gardener.`;
+  
+  const response = await identificationModel({
+    model,
+    contents: prompt,
+  });
+  return response.text;
 };
 
 
