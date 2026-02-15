@@ -96,11 +96,14 @@ export const fetchSeasonalTips = async (month: string, latitude?: number, longit
 
   if (latitude && longitude) {
     prompt = `You are an expert UK gardener. The user is located at coordinates ${latitude}, ${longitude}.
-    First, use Google Search to find the recent weather conditions (temperature and rainfall) for this location over the past week and the forecast for the next few days.
+    First, use Google Search to find the recent weather conditions (temperature and rainfall) for this general area (Region or County level) over the past week and the forecast for the next few days.
+    
+    IMPORTANT: When mentioning the location in your response, ONLY refer to the wider region or county (e.g., "South East England", "Yorkshire"). DO NOT mention specific towns, villages, or street names.
+
     Then, provide a concise seasonal gardening guide for ${month} in the UK, SPECIFICALLY tailored to these local weather conditions.
     For example, if it has been raining heavily, advise on drainage or holding off on soil work. If it's dry, advise on watering.
     
-    Start with a brief summary of the local weather context found.
+    Start with a brief summary of the local weather context found (referring only to the region/county).
 
     Structure the rest of the response in Markdown with these specific sections (level 3 headings ###):
     1. '🌱 Planting Now' (What to sow or plant out)
@@ -143,13 +146,25 @@ export const fetchSeasonalTips = async (month: string, latitude?: number, longit
 };
 
 
-export const getChatSession = (systemInstructionOverride?: string) => {
-    const systemInstruction = systemInstructionOverride || "You are Garden Guru, a friendly and knowledgeable gardening assistant based in the UK. All your advice, units of measurement (e.g., litres, meters), currency (£), and product recommendations must be UK-specific. Answer questions about gardening, plants, and related topics. Keep your answers helpful and encouraging.";
+export const getChatSession = (systemInstructionOverride?: string, location?: { lat: number, lng: number }) => {
+    let systemInstruction = systemInstructionOverride || "You are Garden Guru, a friendly and knowledgeable gardening assistant based in the UK. All your advice, units of measurement (e.g., litres, meters), currency (£), and product recommendations must be UK-specific. Answer questions about gardening, plants, and related topics. Keep your answers helpful and encouraging.";
+    
+    let tools = [];
+
+    if (location) {
+        systemInstruction += `\n\nCONTEXT: The user is located at coordinates: Latitude ${location.lat}, Longitude ${location.lng}. 
+        When the user asks questions where local climate, soil, or weather is relevant (e.g., "what grows well here?", "is it too cold to plant this?", "local frost dates"), 
+        use the Google Search tool to find specific local information (hardiness zones, recent weather, soil types) to provide a tailored answer.
+        
+        IMPORTANT: When referring to the user's location in your response, ONLY refer to the wider Region or County (e.g., "South West England", "Norfolk"). DO NOT mention specific towns, villages, or street addresses.`;
+        tools.push({ googleSearch: {} });
+    }
     
     return chatModel.create({
         model,
         config: {
             systemInstruction: systemInstruction,
+            tools: tools.length > 0 ? tools : undefined,
         }
     });
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import type { Chat } from '@google/genai';
 import { getChatSession } from '../services/geminiService';
 import type { ChatMessage, PlantInfo } from '../types';
-import { SendIcon, UserIcon, BotIcon } from './icons';
+import { SendIcon, UserIcon, BotIcon, MapPinIcon } from './icons';
 
 const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   const processLine = (line: string) => {
@@ -77,8 +77,34 @@ const GardeningChat: React.FC<GardeningChatProps> = ({ chatContextPlant }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [location, setLocation] = useState<{ lat: number, lng: number } | undefined>(undefined);
+  const [isLocationReady, setIsLocationReady] = useState(false);
 
   useEffect(() => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                setIsLocationReady(true);
+            },
+            (error) => {
+                console.log("Location access denied or failed for chat:", error);
+                setIsLocationReady(true);
+            },
+            { timeout: 5000 }
+        );
+    } else {
+        setIsLocationReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLocationReady) return;
+
     const initChat = () => {
       let systemInstruction: string | undefined = undefined;
       let welcomeMessage = "Hello! I'm Garden Guru, your AI gardening assistant based in the UK. Ask me anything about plants!";
@@ -87,13 +113,17 @@ const GardeningChat: React.FC<GardeningChatProps> = ({ chatContextPlant }) => {
         systemInstruction = `You are Garden Guru, a friendly and knowledgeable gardening assistant based in the UK. All your advice, units of measurement (e.g., litres, meters), currency (£), and product recommendations must be UK-specific. The user is currently interested in the ${chatContextPlant.plantName} (${chatContextPlant.scientificName}). Prioritize answering questions about this plant, but also answer general gardening questions. Use Markdown for formatting.`;
         welcomeMessage = `I see you're looking at the ${chatContextPlant.plantName}. What would you like to know about it?`;
       }
+      
+      if (location) {
+          welcomeMessage += " I can also give advice based on your local area.";
+      }
 
-      const session = getChatSession(systemInstruction);
+      const session = getChatSession(systemInstruction, location);
       setChat(session);
       setMessages([{ role: 'model', content: welcomeMessage }]);
     };
     initChat();
-  }, [chatContextPlant]);
+  }, [chatContextPlant, isLocationReady, location]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,7 +162,16 @@ const GardeningChat: React.FC<GardeningChatProps> = ({ chatContextPlant }) => {
 
   return (
     <div className="bg-base-100 p-4 sm:p-6 rounded-xl shadow-lg flex flex-col" style={{ height: '70vh' }}>
-      <h2 className="text-2xl font-bold text-center text-gray-700 mb-4">Gardening Chat</h2>
+      <div className="flex items-center justify-between mb-4 px-2">
+        <h2 className="text-2xl font-bold text-gray-700">Gardening Chat</h2>
+        {location && (
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full border border-blue-100 shadow-sm" title="Location active for tailored advice">
+                <MapPinIcon className="w-3.5 h-3.5" />
+                Location Active
+            </div>
+        )}
+      </div>
+      
       <div className="flex-grow overflow-y-auto pr-4 space-y-4">
         {messages.map((msg, index) => (
           <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
