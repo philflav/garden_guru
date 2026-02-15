@@ -2,6 +2,7 @@
   "name": "Garden Guru",
   "description": "Your AI-powered gardening assistant. Garden Guru identifies plants from photos, provides detailed care instructions, and answers all your gardening questions through an interactive chat.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

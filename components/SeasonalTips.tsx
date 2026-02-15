@@ -1,7 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchSeasonalTips } from '../services/geminiService';
-import { CalendarIcon, SparklesIcon } from './icons';
+import { CalendarIcon, SparklesIcon, ZapIcon } from './icons';
+
+interface TipsData {
+    text: string;
+    sources?: { title: string; uri: string }[];
+}
 
 const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   const processLine = (line: string) => {
@@ -69,9 +73,10 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
 };
 
 const SeasonalTips: React.FC = () => {
-  const [tips, setTips] = useState<string | null>(null);
+  const [tipsData, setTipsData] = useState<TipsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentMonth, setCurrentMonth] = useState('');
+  const [isLocalized, setIsLocalized] = useState(false);
 
   useEffect(() => {
     const date = new Date();
@@ -81,17 +86,34 @@ const SeasonalTips: React.FC = () => {
     const loadTips = async () => {
       setLoading(true);
       try {
-        const storedTips = localStorage.getItem(`garden-guru-tips-${month}`);
-        if (storedTips) {
-            setTips(storedTips);
+        let lat, long;
+        try {
+            // Attempt to get location for weather-adjusted tips
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            });
+            lat = position.coords.latitude;
+            long = position.coords.longitude;
+            setIsLocalized(true);
+        } catch (e) {
+            console.log("Location access denied or failed, using generic UK tips.", e);
+            setIsLocalized(false);
+        }
+
+        // Cache key includes 'local' if location was used to distinguish between generic and specific advice
+        const storageKey = `garden-guru-tips-${month}${lat ? '-local' : ''}`;
+        const storedData = localStorage.getItem(storageKey);
+
+        if (storedData) {
+            setTipsData(JSON.parse(storedData));
         } else {
-            const fetchedTips = await fetchSeasonalTips(month);
-            setTips(fetchedTips);
-            localStorage.setItem(`garden-guru-tips-${month}`, fetchedTips);
+            const fetchedData = await fetchSeasonalTips(month, lat, long);
+            setTipsData(fetchedData);
+            localStorage.setItem(storageKey, JSON.stringify(fetchedData));
         }
       } catch (error) {
         console.error("Failed to fetch seasonal tips", error);
-        setTips("Sorry, we couldn't load the seasonal tips right now. Please try again later.");
+        setTipsData({ text: "Sorry, we couldn't load the seasonal tips right now. Please try again later." });
       } finally {
         setLoading(false);
       }
@@ -107,7 +129,10 @@ const SeasonalTips: React.FC = () => {
             <CalendarIcon className="w-8 h-8" />
         </div>
         <div>
-            <h2 className="text-2xl font-bold text-gray-800">Your {currentMonth} Guide</h2>
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                Your {currentMonth} Guide
+                {isLocalized && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-200">Local Weather Adjusted</span>}
+            </h2>
             <p className="text-gray-500">Essential tasks for the UK garden right now</p>
         </div>
       </div>
@@ -117,12 +142,30 @@ const SeasonalTips: React.FC = () => {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
             <p className="text-gray-600 animate-pulse flex items-center gap-2">
                 <SparklesIcon className="w-4 h-4" />
-                Asking the Guru for {currentMonth}'s advice...
+                Asking the Guru for {currentMonth}'s advice based on local weather...
             </p>
         </div>
       ) : (
         <div className="animate-fade-in bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            {tips && <ContentRenderer content={tips} />}
+            {tipsData && (
+                <>
+                    <ContentRenderer content={tipsData.text} />
+                    {tipsData.sources && tipsData.sources.length > 0 && (
+                        <div className="mt-8 pt-4 border-t border-gray-100">
+                            <h5 className="text-sm font-semibold text-gray-500 mb-2">Sources</h5>
+                            <ul className="text-xs text-gray-400 space-y-1">
+                                {tipsData.sources.map((source, idx) => (
+                                    <li key={idx} className="truncate">
+                                        <a href={source.uri} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+                                            {source.title}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
       )}
     </div>

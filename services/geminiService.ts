@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 const API_KEY = process.env.API_KEY;
@@ -91,20 +90,56 @@ export const fetchRhsExplanation = async (rating: string) => {
     return response.text;
 };
 
-export const fetchSeasonalTips = async (month: string) => {
-  const prompt = `You are an expert UK gardener. Provide a concise seasonal gardening guide for ${month} in the UK.
-  Structure the response in Markdown with these specific sections (level 3 headings ###):
-  1. '🌱 Planting Now' (What to sow or plant out)
-  2. '✂️ Jobs to do' (Pruning, maintenance, lawn care)
-  3. '🧺 Harvest & Kitchen' (What's ready to eat, storage tips, or recipe ideas for gluts)
-  
-  Use bullet points (*) and bold text (**) for emphasis. Keep it practical and inspiring for a home gardener.`;
+export const fetchSeasonalTips = async (month: string, latitude?: number, longitude?: number) => {
+  let prompt = '';
+  let tools = [];
+
+  if (latitude && longitude) {
+    prompt = `You are an expert UK gardener. The user is located at coordinates ${latitude}, ${longitude}.
+    First, use Google Search to find the recent weather conditions (temperature and rainfall) for this location over the past week and the forecast for the next few days.
+    Then, provide a concise seasonal gardening guide for ${month} in the UK, SPECIFICALLY tailored to these local weather conditions.
+    For example, if it has been raining heavily, advise on drainage or holding off on soil work. If it's dry, advise on watering.
+    
+    Start with a brief summary of the local weather context found.
+
+    Structure the rest of the response in Markdown with these specific sections (level 3 headings ###):
+    1. '🌱 Planting Now' (What to sow or plant out)
+    2. '✂️ Jobs to do' (Pruning, maintenance, lawn care)
+    3. '🧺 Harvest & Kitchen' (What's ready to eat, storage tips, or recipe ideas for gluts)
+    
+    Use bullet points (*) and bold text (**) for emphasis. Keep it practical and inspiring for a home gardener.`;
+    tools = [{ googleSearch: {} }];
+  } else {
+    prompt = `You are an expert UK gardener. Provide a concise seasonal gardening guide for ${month} in the UK.
+    Structure the response in Markdown with these specific sections (level 3 headings ###):
+    1. '🌱 Planting Now' (What to sow or plant out)
+    2. '✂️ Jobs to do' (Pruning, maintenance, lawn care)
+    3. '🧺 Harvest & Kitchen' (What's ready to eat, storage tips, or recipe ideas for gluts)
+    
+    Use bullet points (*) and bold text (**) for emphasis. Keep it practical and inspiring for a home gardener.`;
+  }
   
   const response = await identificationModel({
     model,
     contents: prompt,
+    config: {
+        tools: tools.length > 0 ? tools : undefined
+    }
   });
-  return response.text;
+
+  const text = response.text;
+  
+  // Extract sources if available
+  const sources: { title: string; uri: string }[] = [];
+  if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+     response.candidates[0].groundingMetadata.groundingChunks.forEach(chunk => {
+        if (chunk.web) {
+            sources.push({ title: chunk.web.title || 'Source', uri: chunk.web.uri || '#' });
+        }
+     });
+  }
+
+  return { text, sources };
 };
 
 

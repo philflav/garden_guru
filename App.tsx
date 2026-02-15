@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PlantIdentifier from './components/PlantIdentifier';
 import GardeningChat from './components/GardeningChat';
@@ -131,7 +130,7 @@ const App: React.FC = () => {
             className={`${navButtonClasses} ${view === 'tips' ? activeNavButtonClasses : inactiveNavButtonClasses}`}
           >
             <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            Seasonal Tips
+            Seasonal Tips *
           </button>
           <button
             onClick={() => setView('favourites')}
@@ -149,8 +148,9 @@ const App: React.FC = () => {
           {view === 'favourites' && <Favourites favourites={favourites} removeFavourite={removeFavourite} setChatContextPlant={setChatContextPlant} />}
         </main>
         
-        <footer className="text-center text-gray-500 text-sm mt-12 pb-6 pt-6">
+        <footer className="text-center text-gray-500 text-sm mt-12 pb-6 pt-6 flex flex-col gap-2">
             <p>© {new Date().getFullYear()} Garden Guru • Powered by Google Gemini</p>
+            <p className="text-xs text-gray-400 italic">* Seasonal Tips now uses your location to provide weather-adjusted advice. Requires location permission.</p>
         </footer>
       </div>
     </div>
