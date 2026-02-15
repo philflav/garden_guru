@@ -77,6 +77,7 @@ const SeasonalTips: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [currentMonth, setCurrentMonth] = useState('');
   const [isLocalized, setIsLocalized] = useState(false);
+  const [usedCachedLocation, setUsedCachedLocation] = useState(false);
 
   useEffect(() => {
     const date = new Date();
@@ -86,34 +87,78 @@ const SeasonalTips: React.FC = () => {
     const loadTips = async () => {
       setLoading(true);
       try {
-        let lat, long;
+        let lat: number | undefined;
+        let long: number | undefined;
+        
         try {
-            // Attempt to get location for weather-adjusted tips
+            // Attempt to get location from browser
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                    timeout: 7000, 
+                    maximumAge: 300000 // 5 minutes
+                });
             });
             lat = position.coords.latitude;
             long = position.coords.longitude;
+            
+            // Save successful location to storage for future fallbacks
+            localStorage.setItem('garden-guru-location-cache', JSON.stringify({ lat, long, timestamp: Date.now() }));
             setIsLocalized(true);
         } catch (e) {
-            console.log("Location access denied or failed, using generic UK tips.", e);
-            setIsLocalized(false);
+            console.log("Location access failed or timed out. Checking cache...", e);
+            
+            // Fallback to stored location if available
+            const cachedLocStr = localStorage.getItem('garden-guru-location-cache');
+            if (cachedLocStr) {
+                try {
+                    const cachedLoc = JSON.parse(cachedLocStr);
+                    lat = cachedLoc.lat;
+                    long = cachedLoc.long;
+                    setIsLocalized(true);
+                    setUsedCachedLocation(true);
+                    console.log("Using cached location from local storage.");
+                } catch (parseErr) {
+                    console.error("Failed to parse cached location", parseErr);
+                    setIsLocalized(false);
+                }
+            } else {
+                setIsLocalized(false);
+            }
         }
 
-        // Cache key includes 'local' if location was used to distinguish between generic and specific advice
+        // Cache key for the tips content itself
         const storageKey = `garden-guru-tips-${month}${lat ? '-local' : ''}`;
         const storedData = localStorage.getItem(storageKey);
 
         if (storedData) {
             setTipsData(JSON.parse(storedData));
         } else {
-            const fetchedData = await fetchSeasonalTips(month, lat, long);
+            let fetchedData;
+            try {
+                fetchedData = await fetchSeasonalTips(month, lat, long);
+            } catch (err) {
+                console.error("Error fetching tips:", err);
+                // Fallback mechanism: If localized fetch failed, try generic
+                if (lat || long) {
+                    console.log("Falling back to generic tips due to localized fetch error.");
+                    setIsLocalized(false);
+                    fetchedData = await fetchSeasonalTips(month); // Retry without location
+                } else {
+                    throw err; 
+                }
+            }
+            
             setTipsData(fetchedData);
-            localStorage.setItem(storageKey, JSON.stringify(fetchedData));
+            
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(fetchedData));
+            } catch (storageErr) {
+                console.warn("Could not save tips to localStorage:", storageErr);
+            }
         }
       } catch (error) {
-        console.error("Failed to fetch seasonal tips", error);
-        setTipsData({ text: "Sorry, we couldn't load the seasonal tips right now. Please try again later." });
+        console.error("Failed to load seasonal tips", error);
+        setTipsData({ text: "Sorry, we couldn't load the seasonal tips right now. Please check your connection and try again." });
       } finally {
         setLoading(false);
       }
@@ -129,9 +174,13 @@ const SeasonalTips: React.FC = () => {
             <CalendarIcon className="w-8 h-8" />
         </div>
         <div>
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 flex-wrap">
                 Your {currentMonth} Guide
-                {isLocalized && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-200">Local Weather Adjusted</span>}
+                {isLocalized && (
+                    <span className={`text-xs px-2 py-1 rounded-full border ${usedCachedLocation ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                        {usedCachedLocation ? 'Using Saved Location' : 'Local Weather Adjusted'}
+                    </span>
+                )}
             </h2>
             <p className="text-gray-500">Essential tasks for the UK garden right now</p>
         </div>
@@ -142,7 +191,7 @@ const SeasonalTips: React.FC = () => {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
             <p className="text-gray-600 animate-pulse flex items-center gap-2">
                 <SparklesIcon className="w-4 h-4" />
-                Asking the Guru for {currentMonth}'s advice based on local weather...
+                Asking the Guru for {currentMonth}'s advice{isLocalized ? " based on local weather..." : "..."}
             </p>
         </div>
       ) : (

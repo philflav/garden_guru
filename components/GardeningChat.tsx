@@ -82,24 +82,41 @@ const GardeningChat: React.FC<GardeningChatProps> = ({ chatContextPlant }) => {
   const [isLocationReady, setIsLocationReady] = useState(false);
 
   useEffect(() => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setLocation({
+    const getLocation = async () => {
+        try {
+            if (navigator.geolocation) {
+                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000, maximumAge: 300000 });
+                });
+                
+                const newLoc = {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude
-                });
+                };
+                setLocation(newLoc);
+                localStorage.setItem('garden-guru-location-cache', JSON.stringify({ lat: newLoc.lat, long: newLoc.lng, timestamp: Date.now() }));
                 setIsLocationReady(true);
-            },
-            (error) => {
-                console.log("Location access denied or failed for chat:", error);
-                setIsLocationReady(true);
-            },
-            { timeout: 5000 }
-        );
-    } else {
-        setIsLocationReady(true);
-    }
+            } else {
+                // Not supported, try cache
+                throw new Error("Geolocation not supported");
+            }
+        } catch (error) {
+            console.log("Location access denied or failed for chat:", error);
+            // Try cache
+            const cachedLocStr = localStorage.getItem('garden-guru-location-cache');
+            if (cachedLocStr) {
+                try {
+                    const cachedLoc = JSON.parse(cachedLocStr);
+                    setLocation({ lat: cachedLoc.lat, lng: cachedLoc.long });
+                } catch (e) {
+                    console.error("Invalid cached location");
+                }
+            }
+            setIsLocationReady(true);
+        }
+    };
+    
+    getLocation();
   }, []);
 
   useEffect(() => {
