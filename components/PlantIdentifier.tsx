@@ -16,6 +16,46 @@ const fileToBase64 = (file: File): Promise<{ base64: string; mimeType: string }>
   });
 };
 
+// Helper function to compress images
+const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<{ base64: string; mimeType: string }> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Calculate new dimensions
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const [mimeTypePart, base64] = dataUrl.split(';base64,');
+                    resolve({ 
+                        base64: base64, 
+                        mimeType: mimeTypePart.replace('data:', '') 
+                    });
+                } else {
+                    reject(new Error("Could not get canvas context"));
+                }
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
+};
+
 const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   const processLine = (line: string) => {
     const parts = line.split(/(\*\*.*?\*\*)/g);
@@ -219,19 +259,30 @@ const PlantIdentifier: React.FC<PlantIdentifierProps> = ({ favourites, addFavour
           setTimeout(() => setFavouriteStatusMsg(null), 3000);
       } else {
           try {
-            const { base64, mimeType } = await fileToBase64(image.file);
+            // Compress image before saving to favourites to save space
+            const { base64, mimeType } = await compressImage(image.file);
+            
             const plantData: FavouritePlant = {
                 ...plantInfo,
                 imageUrl: `data:${mimeType};base64,${base64}`,
                 careInstructions,
                 pestsAndDiseases: pestsAndDiseases ?? undefined,
             };
-            addFavourite(plantData);
-            setFavouriteStatusMsg("Added to your garden!");
-            setTimeout(() => setFavouriteStatusMsg(null), 3000);
+            
+            // Check approximate size to warn if it might fail silent (though localStorage throws usually)
+            // 5MB limit check is hard to be precise, but good to catch obvious large items
+            try {
+                addFavourite(plantData);
+                setFavouriteStatusMsg("Added to your garden!");
+                setTimeout(() => setFavouriteStatusMsg(null), 3000);
+            } catch (storeError) {
+                 console.error("Storage error:", storeError);
+                 setError("Storage full! Please remove some plants from your garden.");
+            }
+
           } catch (e) {
             console.error("Failed to save image for favourite", e);
-            setError("Could not save the plant to favourites due to an image error.");
+            setError("Could not save the plant to favourites. Storage might be full.");
           }
       }
   };

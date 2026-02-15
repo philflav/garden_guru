@@ -1,17 +1,19 @@
-
 {
   "short_name": "Garden Guru",
   "name": "Garden Guru: Plant ID & Care",
+  "description": "Identify plants instantly, get detailed care instructions, and chat with your AI gardening companion.",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/628/628283.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/628/628283.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": ".",

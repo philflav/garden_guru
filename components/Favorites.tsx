@@ -135,62 +135,66 @@ const FavouriteItem: React.FC<{ plant: FavouritePlant, onRemove: (scientificName
                         <ChevronDownIcon className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     </div>
                 </div>
-                <div className={`overflow-hidden transition-[max-height] duration-700 ease-in-out ${isOpen ? 'max-h-[3000px]' : 'max-h-0'}`}>
-                    <div className="p-4 pt-0 border-t border-gray-200 mt-2 space-y-6">
-                        {plant.imageUrl && (
-                          <div className="w-full h-64 sm:h-80 mt-4 rounded-xl overflow-hidden shadow-lg border-4 border-white">
-                            <img src={plant.imageUrl} alt={plant.plantName} className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        
-                        <div className="bg-white/60 p-5 rounded-xl">
-                          <h4 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-                            <SparklesIcon className="w-5 h-5 text-primary" />
-                            About this Plant
-                          </h4>
-                          <p className="text-gray-700 leading-relaxed">{plant.description}</p>
-                        </div>
-                        
-                        {plant.summary && (
-                        <div className="bg-white/60 p-5 rounded-xl">
-                            <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                              <TreePineIcon className="w-5 h-5 text-primary" />
-                              Plant Profile
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-600">
-                                <p><span className="font-semibold text-gray-800">Type:</span> {plant.summary.plantType}</p>
-                                <p><span className="font-semibold text-gray-800">Size:</span> {plant.summary.size}</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-gray-800">Hardiness:</span> 
-                                    <button 
-                                        onClick={() => handleFetchRhsExplanation(plant.summary.hardiness)}
-                                        disabled={loadingRhs}
-                                        className="flex items-center gap-1.5 text-left text-primary hover:underline disabled:cursor-wait disabled:no-underline"
-                                    >
-                                        <span>{plant.summary.hardiness}</span>
-                                         {loadingRhs ? 
-                                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                            : <InfoIcon className="w-4 h-4 flex-shrink-0" />
-                                          }
-                                    </button>
-                                </div>
-                                <p><span className="font-semibold text-gray-800">Growth Rate:</span> {plant.summary.growthRate}</p>
-                                <p className="sm:col-span-2 mt-2 pt-2 border-t border-gray-100"><span className="font-semibold text-gray-800">Characteristics:</span> {plant.summary.keyCharacteristics}</p>
+                
+                {/* Use grid-template-rows for animating height to auto */}
+                <div className={`grid transition-[grid-template-rows] duration-500 ease-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden">
+                        <div className="p-4 pt-0 border-t border-gray-200 mt-2 space-y-6">
+                            {plant.imageUrl && (
+                            <div className="w-full h-64 sm:h-80 mt-4 rounded-xl overflow-hidden shadow-lg border-4 border-white">
+                                <img src={plant.imageUrl} alt={plant.plantName} className="w-full h-full object-cover" />
                             </div>
-                        </div>
-                        )}
-                        
-                        <div className="bg-white/60 p-5 rounded-xl">
-                            <h4 className="text-lg font-bold text-gray-800 mb-2">Care Instructions</h4>
-                            <ContentRenderer content={plant.careInstructions} />
-                        </div>
-
-                        {plant.pestsAndDiseases && (
+                            )}
+                            
                             <div className="bg-white/60 p-5 rounded-xl">
-                                <h4 className="text-lg font-bold text-gray-800 mb-2">Pests & Diseases</h4>
-                                <ContentRenderer content={plant.pestsAndDiseases} />
+                            <h4 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                <SparklesIcon className="w-5 h-5 text-primary" />
+                                About this Plant
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed">{plant.description}</p>
                             </div>
-                        )}
+                            
+                            {plant.summary && (
+                            <div className="bg-white/60 p-5 rounded-xl">
+                                <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <TreePineIcon className="w-5 h-5 text-primary" />
+                                Plant Profile
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-600">
+                                    <p><span className="font-semibold text-gray-800">Type:</span> {plant.summary.plantType}</p>
+                                    <p><span className="font-semibold text-gray-800">Size:</span> {plant.summary.size}</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-800">Hardiness:</span> 
+                                        <button 
+                                            onClick={() => handleFetchRhsExplanation(plant.summary.hardiness)}
+                                            disabled={loadingRhs}
+                                            className="flex items-center gap-1.5 text-left text-primary hover:underline disabled:cursor-wait disabled:no-underline"
+                                        >
+                                            <span>{plant.summary.hardiness}</span>
+                                            {loadingRhs ? 
+                                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                : <InfoIcon className="w-4 h-4 flex-shrink-0" />
+                                            }
+                                        </button>
+                                    </div>
+                                    <p><span className="font-semibold text-gray-800">Growth Rate:</span> {plant.summary.growthRate}</p>
+                                    <p className="sm:col-span-2 mt-2 pt-2 border-t border-gray-100"><span className="font-semibold text-gray-800">Characteristics:</span> {plant.summary.keyCharacteristics}</p>
+                                </div>
+                            </div>
+                            )}
+                            
+                            <div className="bg-white/60 p-5 rounded-xl">
+                                <h4 className="text-lg font-bold text-gray-800 mb-2">Care Instructions</h4>
+                                <ContentRenderer content={plant.careInstructions} />
+                            </div>
+
+                            {plant.pestsAndDiseases && (
+                                <div className="bg-white/60 p-5 rounded-xl">
+                                    <h4 className="text-lg font-bold text-gray-800 mb-2">Pests & Diseases</h4>
+                                    <ContentRenderer content={plant.pestsAndDiseases} />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
